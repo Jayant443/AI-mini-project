@@ -1,6 +1,5 @@
 import chess
 import random
-
 from evaluation import evaluate_board
 
 class Game:
@@ -19,6 +18,19 @@ class Game:
                 return
             print("Invalid choice. Enter 'white' or 'black'.")
     
+    def ask_promotion(self, from_square, to_square):
+        piece_map = {
+            "q": chess.QUEEN,
+            "r": chess.ROOK,
+            "b": chess.BISHOP,
+            "n": chess.KNIGHT,
+        }
+        while True:
+            choice = input("Promote to (q=queen, r=rook, b=bishop, n=knight): ").strip().lower()
+            if choice in piece_map:
+                return chess.Move(from_square, to_square, promotion=piece_map[choice])
+            print("Invalid choice. Enter q, r, b or n.")
+
     def get_human_move(self):
         while True:
             print([move.uci() for move in self.board.legal_moves])
@@ -27,11 +39,17 @@ class Game:
                 return None
             try:
                 move = chess.Move.from_uci(move_input)
-                if move in self.board.legal_moves:
-                    return move
-                print("Illegal move. Try again.")
             except ValueError:
                 print("Invalid format. Enter moves like e2e4 or g1f3.")
+                continue
+            matching = [legal for legal in self.board.legal_moves if legal.from_square == move.from_square and legal.to_square == move.to_square]
+            if not matching:
+                print("Illegal move. Try again.")
+                continue
+            promotions = [legal for legal in matching if legal.promotion]
+            if promotions:
+                return self.ask_promotion(move.from_square, move.to_square)
+            return matching[0]
 
     def engine_move(self):
         legal_moves = list(self.board.legal_moves)
