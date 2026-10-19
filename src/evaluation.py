@@ -152,11 +152,39 @@ def is_passed_pawn(board, square, color):
 def passed_pawns(board, color):
     return [square for square in board.pieces(chess.PAWN, color) if is_passed_pawn(board, square, color)]
 
+def pawn_attack_score(board: chess.Board, color: chess.Color):
+    enemy = not color
+    pawn_squares = board.pieces(chess.PAWN, color)
+    enemy_pieces = board.occupied_co[enemy]
+
+    attacked_targets = set()
+    for pawn_square in pawn_squares:
+        attacked_targets.update(board.attacks(pawn_square) & enemy_pieces)
+    legal_pawn_captures = set()
+    if board.turn == color:
+        for move in board.legal_moves:
+            piece = board.piece_at(move.from_square)
+            if piece and piece.piece_type == chess.PAWN and board.is_capture(move):
+                legal_pawn_captures.add(move.to_square)
+
+    score = 0
+    for target in attacked_targets:
+        target_piece = board.piece_at(target)
+        if target_piece is None or target_piece.piece_type == chess.KING:
+            continue
+        target_value = PIECE_VALUES.get(target_piece.piece_type, 0)
+        if target in legal_pawn_captures:
+            score += target_value // 10
+        else:
+            score += target_value // 20
+    return score
+
 def pawn_structure(board: chess.Board):
     score = 0
     
     for color, sign in ((chess.WHITE, 1), (chess.BLACK, -1)):
         score += sign * (-20 * doubled_pawn_count(board, color) -15 * isolated_pawn_count(board, color) +10 * connected_pawn_count(board, color))
+        score += sign * pawn_attack_score(board, color)
         for square in passed_pawns(board, color):
             rank = chess.square_rank(square)
             advancement = (rank if color == chess.WHITE else 7 - rank)

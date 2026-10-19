@@ -73,6 +73,7 @@ class Game:
                 human_move = self.get_human_move()
                 if human_move is None:
                     print("Game ended by resignation/exit.")
+                    print("Final FEN:", self.board.fen())
                     return
                 print(f"You play: {self.board.san(human_move)}")
                 self.board.push(human_move)
@@ -83,3 +84,4 @@ class Game:
         print("Game over!")
         print("Result:", self.board.result())
         print("Termination:", self.board.outcome().termination.name)
+        print("Final FEN:", self.board.fen())
