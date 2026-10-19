@@ -2,7 +2,7 @@ import chess
 from config import PIECE_VALUES, PST
 
 def evaluate_board(board: chess.Board):
-    pawn_structure_score = pawn_structure(board) + material(board) + pst_score(board)
+    pawn_structure_score = pawn_structure(board) + material(board) + pst_score(board)+rook_activity(board)
     return pawn_structure_score
 
 def material(board: chess.Board):
@@ -24,7 +24,35 @@ def pst_score(board: chess.Board):
     return score
 
 def rook_activity(board: chess.Board):
-    pass
+    score = 0
+    for color, sign in ((chess.WHITE, 1), (chess.BLACK, -1)):
+        friendly_pawns = board.pieces(chess.PAWN, color)
+        enemy_pawns = board.pieces(chess.PAWN, not color)
+        rooks = board.pieces(chess.ROOK, color)
+
+        for square in rooks:
+            file_index = chess.square_file(square)
+            file_mask = chess.BB_FILES[file_index]
+            has_friendly_pawn = bool(friendly_pawns & file_mask)
+            has_enemy_pawn = bool(enemy_pawns & file_mask)
+            if not has_friendly_pawn and not has_enemy_pawn:
+                score += sign * 25
+            elif not has_friendly_pawn:
+                score += sign * 15
+
+            rank_index = chess.square_rank(square)
+            seventh_rank = (rank_index == 6 if color == chess.WHITE else rank_index == 1)
+
+            if seventh_rank:
+                score += sign * 20
+        rook_squares = list(rooks)
+        for index, first in enumerate(rook_squares):
+            for second in rook_squares[index + 1:]:
+                same_rank = chess.square_rank(first) == chess.square_rank(second)
+                same_file = chess.square_file(first) == chess.square_file(second)
+                if same_rank or same_file:
+                    score += sign * 20
+    return score
 
 def bishop_activity(board: chess.Board):
     pass
