@@ -66,7 +66,7 @@ class Game:
         print("Enter moves in UCI format, e.g. e2e4.")
         print("Type 'quit' to exit.")
         print(self.board.unicode(orientation=self.human_color, invert_color=True))
-        print(f"Evaluation (pawn structure only): {evaluate_board(self.board)}")
+        print(f"Evaluation: {evaluate_board(self.board)}")
 
         while not self.board.is_game_over():
             if self.board.turn == self.human_color:
@@ -79,7 +79,7 @@ class Game:
             else:
                 self.engine_move()
             print(self.board.unicode(orientation=self.human_color, invert_color=True))
-            print(f"Evaluation (pawn structure only): {evaluate_board(self.board)}")
+            print(f"Evaluation: {evaluate_board(self.board)}")
         print("Game over!")
         print("Result:", self.board.result())
         print("Termination:", self.board.outcome().termination.name)

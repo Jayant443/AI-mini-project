@@ -2,7 +2,7 @@ import chess
 from config import PIECE_VALUES, PST
 
 def evaluate_board(board: chess.Board):
-    pawn_structure_score = pawn_structure(board) + material(board) + pst_score(board)+rook_activity(board)
+    pawn_structure_score = pawn_structure(board) + material(board) + pst_score(board) + rook_activity(board) + bishop_activity(board)
     return pawn_structure_score
 
 def material(board: chess.Board):
@@ -55,7 +55,24 @@ def rook_activity(board: chess.Board):
     return score
 
 def bishop_activity(board: chess.Board):
-    pass
+    score = 0
+    for color, sign in ((chess.WHITE, 1), (chess.BLACK, -1)):
+        bishops = board.pieces(chess.BISHOP, color)
+
+        for square in bishops:
+            attacks = board.attacks(square)
+            friendly_pieces = board.occupied_co[color]
+            mobility = len(attacks - friendly_pieces)
+            score += sign * mobility * 2
+            for target in attacks:
+                distance = max(
+                    abs(chess.square_file(target) - chess.square_file(square)),
+                    abs(chess.square_rank(target) - chess.square_rank(square)),
+                )
+                if distance >= 4:
+                    score += sign * 5
+                    break
+    return score
 
 def queen_activity(board: chess.Board):
     pass
