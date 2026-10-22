@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Nuwanda — Chess</title>
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chessground@9.2.1/assets/chessground.base.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chessground@9.2.1/assets/chessground.brown.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chessground@9.2.1/assets/chessground.cburnett.css">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div id="name-modal" class="modal">
+    <form id="name-form" class="modal-card">
+      <h2>Welcome</h2>
+      <p>What's your name?</p>
+      <input id="player-name" type="text" placeholder="Your name"
+             autocomplete="off" maxlength="24" required>
+      <button type="submit">Start</button>
+    </form>
+  </div>
+  <header>
+    <h1>Nuwanda</h1>
+    <div class="controls">
+      <button id="btn-new" type="button">New Game</button>
+      <button id="btn-flip" type="button">Flip Board</button>
+      <button id="btn-white" type="button">Play as White</button>
+      <button id="btn-black" type="button">Play as Black</button>
+      <label class="time-label">Engine time
+        <select id="engine-time">
+          <option value="1">1s</option>
+          <option value="2" selected>2s</option>
+          <option value="5">5s</option>
+        </select>
+      </label>
+    </div>
+  </header>
+  <main>
+    <section class="board-column">
+      <div id="label-top" class="side-label">Nuwanda</div>
+      <div id="captured-top" class="captured"></div>
+      <div class="board-frame">
+        <div id="board"></div>
+        <div id="thinking-overlay" class="thinking-overlay" hidden>
+          <span id="thinking-text">Nuwanda is thinking…</span>
+        </div>
+        <div id="promotion-overlay" class="promotion-overlay" hidden>
+          <div class="promotion-card">
+            <p>Promote to</p>
+            <div class="promotion-buttons">
+              <button type="button" data-piece="q">Queen</button>
+              <button type="button" data-piece="r">Rook</button>
+              <button type="button" data-piece="b">Bishop</button>
+              <button type="button" data-piece="n">Knight</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="label-bottom" class="side-label">You</div>
+      <div id="captured-bottom" class="captured"></div>
+      <div id="status" class="status" role="status"></div>
+      <div id="error-box" class="error-box" hidden>
+        <span id="error-text"></span>
+        <button id="btn-retry" type="button">Retry</button>
+      </div>
+      <button id="btn-copy-pgn" type="button">Copy PGN</button>
+    </section>
+
+    <section class="moves-column">
+      <h2>Moves</h2>
+      <ol id="move-list" class="move-list"></ol>
+    </section>
+  </main>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+  <script type="module" src="/static/app.js"></script>
+</body>
+</html>
