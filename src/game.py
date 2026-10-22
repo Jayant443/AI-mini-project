@@ -2,6 +2,7 @@ import chess
 from evaluation import evaluate
 from search import Search
 
+ENGINE_NAME = "Nuwanda"
 ENGINE_TIME_LIMIT = 3.0
 ENGINE_MAX_DEPTH = 64
 
@@ -58,17 +59,18 @@ class Game:
     def engine_move(self):
         move = self.search.search(self.board, max_depth=ENGINE_MAX_DEPTH,
                                   time_limit=ENGINE_TIME_LIMIT)
-        print(f"Engine plays: {self.board.san(move)} ({move.uci()}) "
+        print(f"{ENGINE_NAME} plays: {self.board.san(move)} ({move.uci()}) "
               f"[depth {self.search.last_depth}, score {self.search.last_score}, "
               f"{self.search.nodes} nodes]")
         self.board.push(move)
 
     def play_game(self):
+        print(f"The name is {ENGINE_NAME}.")
         self.choose_color()
         if self.human_color == chess.WHITE:
-            print("You are White. The engine is Black.")
+            print(f"You are White. {ENGINE_NAME} is Black.")
         else:
-            print("You are Black. The engine is White.")
+            print(f"You are Black. {ENGINE_NAME} is White.")
         print("Enter moves in UCI format, e.g. e2e4.")
         print("Type 'quit' to exit.")
         print(self.board.unicode(orientation=self.human_color, invert_color=True))
