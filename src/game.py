@@ -1,11 +1,15 @@
 import chess
-import random
 from evaluation import evaluate
+from search import Search
+
+ENGINE_TIME_LIMIT = 3.0
+ENGINE_MAX_DEPTH = 64
 
 class Game:
     def __init__(self):
         self.board = chess.Board()
         self.human_color = chess.WHITE
+        self.search = Search()
 
     def choose_color(self):
         while True:
@@ -52,9 +56,11 @@ class Game:
             return matching[0]
 
     def engine_move(self):
-        legal_moves = list(self.board.legal_moves)
-        move = random.choice(legal_moves)
-        print(f"Engine plays: {self.board.san(move)} ({move.uci()})")
+        move = self.search.search(self.board, max_depth=ENGINE_MAX_DEPTH,
+                                  time_limit=ENGINE_TIME_LIMIT)
+        print(f"Engine plays: {self.board.san(move)} ({move.uci()}) "
+              f"[depth {self.search.last_depth}, score {self.search.last_score}, "
+              f"{self.search.nodes} nodes]")
         self.board.push(move)
 
     def play_game(self):
