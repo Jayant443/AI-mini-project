@@ -1,97 +1,129 @@
+"""
+Piece-square tables (psts) for each piece type
+A king needs two psts, one for the opening/midgame (stay safe) and one for the endgame (get active).
+A king is considered weak when it is (or can be) attacked.
+
+Pawns require two psts, for white and black (inverted). Plus a position evaluation whrere doubled pawns,
+isolated pawns, connected pawns and passed pawns are evaluated. Passed pawns must be evaluated based on the
+opposite colored pawns that can stop them (must check square infront of them). 
+
+Knight psts stay constant throughout the game, as knights are more powerful in the center than in the edges.
+
+Rooks, bishop, queens are sliding pieces that are evaluated based on their mobility and the number of square they
+can attack. including the open files, ranks, diagonals they have.
+
+Bishops are generally more powerful when they have open diagonals (especially the central diagonals and in endgame).
+
+Queens become more powerful as the number of sqaures they can atttack increases.
+
+Rooks are more powerful when they have open files and ranks, and also when they are connected to each other.
+It doesn't matter if they are in the center or not.
+"""
+
 import chess
 
-PIECE_VALUES = {
-    chess.PAWN: 100,
-    chess.KNIGHT: 300,
-    chess.BISHOP: 300,
-    chess.ROOK: 500,
-    chess.QUEEN: 900
-}
+pc = chess.popcount
+P, N, B, R, Q, K = chess.PAWN, chess.KNIGHT, chess.BISHOP, chess.ROOK, chess.QUEEN, chess.KING
 
-# Piece-square tables (psts) for each piece type
-# A king needs two psts, one for the opening/midgame (stay safe) and one for the endgame (get active).
-# A king is considered weak when it is (or can be) attacked.
+MAT_MG = {P: 100, N: 320, B: 330, R: 500, Q: 950, K: 0}
+MAT_EG = {P: 120, N: 310, B: 330, R: 540, Q: 950, K: 0}
 
-# Pawns require two psts, for white and black (inverted). Plus a position evaluation whrere doubled pawns,
-# isolated pawns, connected pawns and passed pawns are evaluated. Passed pawns must be evaluated based on the
-# opposite colored pawns that can stop them (must check square infront of them). 
+PAWN_MG = [
+     0,  0,  0,  0,  0,  0,  0,  0,
+    50, 50, 50, 50, 50, 50, 50, 50,
+    10, 10, 20, 30, 30, 20, 10, 10,
+     5,  5, 10, 25, 25, 10,  5,  5,
+     0,  0,  0, 20, 20,  0,  0,  0,
+     5, -5,-10,  0,  0,-10, -5,  5,
+     5, 10, 10,-20,-20, 10, 10,  5,
+     0,  0,  0,  0,  0,  0,  0,  0]
 
-# Knight psts stay constant throughout the game, as knights are more powerful in the center than in the edges.
-
-# Rooks, bishop, queens are sliding pieces that are evaluated based on their mobility and the number of square they
-# can attack. including the open files, ranks, diagonals they have.
-
-# Bishops are generally more powerful when they have open diagonals (especially the central diagonals and in endgame).
-
-# Queens become more powerful as the number of sqaures they can atttack increases.
-
-# Rooks are more powerful when they have open files and ranks, and also when they are connected to each other.
-# It doesn't matter if they are in the center or not.
-
-# Board to array in python chess:
-
-# {63: Piece.from_symbol('r'), 62: Piece.from_symbol('n'), 61: Piece.from_symbol('b'), 
-# 60: Piece.from_symbol('k'), 59: Piece.from_symbol('q'), 58: Piece.from_symbol('b'), 
-# 57: Piece.from_symbol('n'), 56: Piece.from_symbol('r'), 55: Piece.from_symbol('p'), 
-# 54: Piece.from_symbol('p'), 53: Piece.from_symbol('p'), 52: Piece.from_symbol('p'), 
-# 51: Piece.from_symbol('p'), 50: Piece.from_symbol('p'), 49: Piece.from_symbol('p'), 
-# 48: Piece.from_symbol('p'), 15: Piece.from_symbol('P'), 14: Piece.from_symbol('P'), 
-# 13: Piece.from_symbol('P'), 12: Piece.from_symbol('P'), 11: Piece.from_symbol('P'), 
-# 10: Piece.from_symbol('P'), 9: Piece.from_symbol('P'), 8: Piece.from_symbol('P'), 
-# 7: Piece.from_symbol('R'), 6: Piece.from_symbol('N'), 5: Piece.from_symbol('B'), 
-# 4: Piece.from_symbol('K'), 3: Piece.from_symbol('Q'), 2: Piece.from_symbol('B'), 
-# 1: Piece.from_symbol('N'), 0: Piece.from_symbol('R')}
-
-
-# b = [
-#     chess.A1 (white rook), chess.B1, chess.C1, chess.D1, chess.E1, chess.F1, chess.G1, chess.H1,
-#     chess.A2             , chess.B2, chess.C2, chess.D2, chess.E2, chess.F2, chess.G2, chess.H2,
-#     chess.A3             , chess.B3, chess.C3, chess.D3, chess.E3, chess.F3, chess.G3, chess.H3,
-#     chess.A4             , chess.B4, chess.C4, chess.D4, chess.E4, chess.F4, chess.G4, chess.H4,
-#     chess.A5             , chess.B5, chess.C5, chess.D5, chess.E5, chess.F5, chess.G5, chess.H5,
-#     chess.A6             , chess.B6, chess.C6, chess.D6, chess.E6, chess.F6, chess.G6, chess.H6,
-#     chess.A7             , chess.B7, chess.C7, chess.D7, chess.E7, chess.F7, chess.G7, chess.H7,
-#     chess.A8 (black rook), chess.B8, chess.C8, chess.D8, chess.E8, chess.F8, chess.G8, chess.H8
-# ]
-
-PAWN_PST = [
-      0,   0,   0,   0,   0,   0,   0,   0,
-     10,  10,  10, -10, -10,  10,  10,  10,
-     10,  10,  20,  30,  30,  20,  10,  10,
-     15,  15,  25,  40,  40,  25,  15,  15,
-     20,  20,  30,  50,  50,  30,  20,  20,
-     30,  30,  40,  60,  60,  40,  30,  30,
-     80,  80,  80,  80,  80,  80,  80,  80,
-      0,   0,   0,   0,   0,   0,   0,   0,
-]
+PAWN_EG = [
+     0,  0,  0,  0,  0,  0,  0,  0,
+    70, 70, 70, 70, 70, 70, 70, 70,
+    40, 40, 40, 40, 40, 40, 40, 40,
+    22, 22, 22, 22, 22, 22, 22, 22,
+    10, 10, 10, 10, 10, 10, 10, 10,
+     4,  4,  4,  4,  4,  4,  4,  4,
+     0,  0,  0,  0,  0,  0,  0,  0,
+     0,  0,  0,  0,  0,  0,  0,  0]
 
 KNIGHT_PST = [
-    -50, -30, -20, -20, -20, -20, -30, -50,
-    -30, -10,   0,   5,   5,   0, -10, -30,
-    -20,   5,  10,  15,  15,  10,   5, -20,
-    -20,   0,  15,  20,  20,  15,   0, -20,
-    -20,   5,  15,  20,  20,  15,   5, -20,
-    -20,   0,  10,  15,  15,  10,   0, -20,
-    -30, -10,   0,   0,   0,   0, -10, -30,
-    -50, -30, -20, -20, -20, -20, -30, -50,
-]
-
-ROOK_PST = [
-    500,   500,   500,   500,   500,   500,   500,   500,
-    510,   510,   510,   510,   510,   510,   510,   510,
-    500,   500,   500,   500,   500,   500,   500,   500,
-    500,   500,   500,   500,   500,   500,   500,   500,
-    500,   500,   500,   500,   500,   500,   500,   500,
-    500,   500,   500,   500,   500,   500,   500,   500,
-    510,   510,   510,   510,   510,   510,   510,   510,
-    500,   500,   500,   500,   500,   500,   500,   500,
-]
+   -50,-40,-30,-30,-30,-30,-40,-50,
+   -40,-20,  0,  0,  0,  0,-20,-40,
+   -30,  0, 10, 15, 15, 10,  0,-30,
+   -30,  5, 15, 20, 20, 15,  5,-30,
+   -30,  0, 15, 20, 20, 15,  0,-30,
+   -30,  5, 10, 15, 15, 10,  5,-30,
+   -40,-20,  0,  5,  5,  0,-20,-40,
+   -50,-40,-30,-30,-30,-30,-40,-50]
 
 BISHOP_PST = [
+   -20,-10,-10,-10,-10,-10,-10,-20,
+   -10,  0,  0,  0,  0,  0,  0,-10,
+   -10,  0,  5, 10, 10,  5,  0,-10,
+   -10,  5,  5, 10, 10,  5,  5,-10,
+   -10,  0, 10, 10, 10, 10,  0,-10,
+   -10, 10, 10, 10, 10, 10, 10,-10,
+   -10,  5,  0,  0,  0,  0,  5,-10,
+   -20,-10,-10,-10,-10,-10,-10,-20]
 
-]
+ROOK_PST = [
+     0,  0,  0,  0,  0,  0,  0,  0,
+     5, 10, 10, 10, 10, 10, 10,  5,
+    -5,  0,  0,  0,  0,  0,  0, -5,
+    -5,  0,  0,  0,  0,  0,  0, -5,
+    -5,  0,  0,  0,  0,  0,  0, -5,
+    -5,  0,  0,  0,  0,  0,  0, -5,
+    -5,  0,  0,  0,  0,  0,  0, -5,
+     0,  0,  0,  5,  5,  0,  0,  0]
 
-PST = {
-    chess.PAWN: PAWN_PST,
-    chess.KNIGHT: KNIGHT_PST,
-}
+QUEEN_PST = [
+   -20,-10,-10, -5, -5,-10,-10,-20,
+   -10,  0,  0,  0,  0,  0,  0,-10,
+   -10,  0,  5,  5,  5,  5,  0,-10,
+    -5,  0,  5,  5,  5,  5,  0, -5,
+     0,  0,  5,  5,  5,  5,  0, -5,
+   -10,  5,  5,  5,  5,  5,  0,-10,
+   -10,  0,  5,  0,  0,  0,  0,-10,
+   -20,-10,-10, -5, -5,-10,-10,-20]
+
+KING_MG = [
+   -30,-40,-40,-50,-50,-40,-40,-30,
+   -30,-40,-40,-50,-50,-40,-40,-30,
+   -30,-40,-40,-50,-50,-40,-40,-30,
+   -30,-40,-40,-50,-50,-40,-40,-30,
+   -20,-30,-30,-40,-40,-30,-30,-20,
+   -10,-20,-20,-20,-20,-20,-20,-10,
+    20, 20,  0,  0,  0,  0, 20, 20,
+    20, 30, 10,  0,  0, 10, 30, 20]
+
+KING_EG = [
+   -50,-40,-30,-20,-20,-30,-40,-50,
+   -30,-20,-10,  0,  0,-10,-20,-30,
+   -30,-10, 20, 30, 30, 20,-10,-30,
+   -30,-10, 30, 40, 40, 30,-10,-30,
+   -30,-10, 30, 40, 40, 30,-10,-30,
+   -30,-10, 20, 30, 30, 20,-10,-30,
+   -30,-30,  0,  0,  0,  0,-30,-30,
+   -50,-30,-30,-30,-30,-30,-30,-50]
+
+PHASE_W = {N: 1, B: 1, R: 2, Q: 4}
+MAX_PHASE = 24
+
+DOUBLED = (-10, -20)
+ISOLATED = (-10, -15)
+BACKWARD = (-8, -10)
+PASSED = [(0, 0), (5, 10), (10, 20), (20, 40), (35, 70), (60, 120), (100, 200), (0, 0)]
+CONNECTED = [0, 0, 5, 8, 12, 20, 30, 0]
+
+BISHOP_PAIR = (30, 50)
+LONG_DIAG = 8
+KNIGHT_OUTPOST = (20, 10)
+ROOK_OPEN, ROOK_SEMI, ROOK_7TH, ROOK_CONN = 25, 12, 20, 5
+TEMPO = 10
+
+MOB = {N: (4, 4, 4), B: (4, 5, 6), R: (2, 4, 7), Q: (1, 2, 14)}
+ATTACK_W = {N: 2, B: 2, R: 3, Q: 5}
+SAFETY = [0, 0, 5, 15, 35, 70, 110, 160, 220, 280] + [320] * 20
+SHIELD_NEAR, SHIELD_FAR, SHIELD_OPEN_FILE = 10, 5, -15
