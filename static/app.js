@@ -42,9 +42,21 @@ const nameModal = document.getElementById('name-modal');
 const nameForm = document.getElementById('name-form');
 const nameInput = document.getElementById('player-name');
 const timeSelect = document.getElementById('engine-time');
+const hintBtn = document.getElementById('btn-hint') || (() => {
+  const button = document.createElement('button');
+  button.id = 'btn-hint';
+  button.type = 'button';
+  button.textContent = 'HINT';
+  document.querySelector('.board-column').appendChild(button);
+  return button;
+})();
 const pgnBtn = document.getElementById('btn-copy-pgn');
 const capturedTopEl = document.getElementById('captured-top');
 const capturedBottomEl = document.getElementById('captured-bottom');
+
+// Keep the controls in their intended sections even if cached markup is served.
+document.getElementById('error-box').insertAdjacentElement('afterend', hintBtn);
+moveListEl.insertAdjacentElement('afterend', pgnBtn);
 
 let game = new Chess();
 let playerColor = 'w';
@@ -52,6 +64,7 @@ let playerName = 'Player';
 let orientation = 'w';
 let thinking = false;
 let lastMove = null;
+let bestMoveHint = null;
 let pendingPromotion = null;
 let gameGen = 0;
 let copyFlashTimer = null;
@@ -96,6 +109,11 @@ function syncBoard() {
     check: game.in_check(),
     lastMove: lastMove || undefined,
   });
+  board.setShapes(bestMoveHint ? [{
+    orig: bestMoveHint.slice(0, 2),
+    dest: bestMoveHint.slice(2, 4),
+    brush: 'green',
+  }] : []);
   renderCaptured();
 }
 
@@ -116,6 +134,7 @@ function onBoardMove(from, to) {
 function commitPlayerMove(spec) {
   const move = game.move(spec);
   if (!move) { syncBoard(); return; }
+  bestMoveHint = null;
   lastMove = [move.from, move.to];
   syncBoard();
   renderMoveList();
@@ -181,16 +200,23 @@ async function requestEngineMove() {
       throw new Error(data.error || `engine request failed (HTTP ${response.status})`);
     }
 
+    bestMoveHint = data.move;
+    thinking = false;
+    syncBoard();
+    statusEl.textContent = `Best move: ${data.san}`;
+    await new Promise((resolve) => setTimeout(resolve, 450));
+    if (gen !== gameGen) return;
+
     const spec = { from: data.move.slice(0, 2), to: data.move.slice(2, 4) };
     if (data.move.length > 4) spec.promotion = data.move.slice(4);
     const move = game.move(spec);
     if (!move) throw new Error(`engine returned an illegal move: ${data.move}`);
 
     lastMove = [move.from, move.to];
+    bestMoveHint = null;
     engineInfoByPly.set(game.history().length, {
       depth: data.depth, eval: data.eval, nodes: data.nodes,
     });
-    thinking = false;
     syncBoard();
     renderMoveList();
     updateStatus();
@@ -199,6 +225,38 @@ async function requestEngineMove() {
     if (gen !== gameGen) return;
     thinking = false;
     syncBoard();
+    updateStatus();
+    showError(err.message);
+  }
+}
+
+async function requestBestMoveHint() {
+  if (thinking || game.game_over() || game.turn() !== playerColor) return;
+  const gen = gameGen;
+  thinking = true;
+  updateStatus();
+  syncBoard();
+  try {
+    const response = await fetch(ENGINE_MOVE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ moves: uciMoves(), time: Number(timeSelect.value) }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (gen !== gameGen) return;
+    if (!response.ok || data.error) {
+      throw new Error(data.error || `engine request failed (HTTP ${response.status})`);
+    }
+    bestMoveHint = data.move;
+    thinking = false;
+    syncBoard();
+    updateStatus();
+    statusEl.textContent = `Best move: ${data.san}`;
+  } catch (err) {
+    if (gen !== gameGen) return;
+    thinking = false;
+    syncBoard();
+    updateStatus();
     showError(err.message);
   }
 }
@@ -209,6 +267,7 @@ function newGame(color) {
   orientation = color;
   game = new Chess();
   lastMove = null;
+  bestMoveHint = null;
   engineInfoByPly.clear();
   thinking = false;
   closePromotionPicker();
@@ -238,6 +297,7 @@ function showGameOver() {
 }
 
 function updateStatus() {
+  hintBtn.disabled = thinking || game.game_over() || game.turn() !== playerColor;
   if (thinking) {
     statusEl.textContent = `${ENGINE_NAME} is thinking…`;
     return;
@@ -365,14 +425,14 @@ document.getElementById('btn-flip').addEventListener('click', () => {
 document.getElementById('btn-retry').addEventListener('click', () => {
   if (!errorBox.hidden) requestEngineMove();
 });
+hintBtn.addEventListener('click', requestBestMoveHint);
 pgnBtn.addEventListener('click', copyPgn);
 
 nameForm.addEventListener('submit', (event) => {
   event.preventDefault();
   playerName = nameInput.value.trim() || 'Player';
   nameModal.hidden = true;
-  updateLabels();
-  updateStatus();
+  newGame(playerColor);
 });
 
 updateLabels();

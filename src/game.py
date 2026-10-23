@@ -22,6 +22,15 @@ class Game:
                 self.human_color = chess.BLACK
                 return
             print("Invalid choice. Enter 'white' or 'black'.")
+
+    def choose_mode(self):
+        while True:
+            choice = input("Choose mode (human/self-play): ").strip().lower()
+            if choice in ("human", "h"):
+                return False
+            if choice in ("self-play", "self", "s"):
+                return True
+            print("Invalid choice. Enter 'human' or 'self-play'.")
     
     def ask_promotion(self, from_square, to_square):
         piece_map = {
@@ -56,28 +65,41 @@ class Game:
                 return self.ask_promotion(move.from_square, move.to_square)
             return matching[0]
 
-    def engine_move(self):
+    def announce_best_move(self):
         move = self.search.search(self.board, max_depth=ENGINE_MAX_DEPTH,
                                   time_limit=ENGINE_TIME_LIMIT)
-        print(f"{ENGINE_NAME} plays: {self.board.san(move)} ({move.uci()}) "
+        current_side = "White" if self.board.turn == chess.WHITE else "Black"
+        print(f"Best move for {current_side}: {self.board.san(move)} ({move.uci()})")
+        return move
+
+    def engine_move(self, move):
+        side = "White" if self.board.turn == chess.WHITE else "Black"
+        print(f"{ENGINE_NAME} ({side}) plays: {self.board.san(move)} ({move.uci()}) "
               f"[depth {self.search.last_depth}, score {self.search.last_score}, "
               f"{self.search.nodes} nodes]")
         self.board.push(move)
 
     def play_game(self):
         print(f"The name is {ENGINE_NAME}.")
-        self.choose_color()
-        if self.human_color == chess.WHITE:
-            print(f"You are White. {ENGINE_NAME} is Black.")
+        self_play = self.choose_mode()
+        if self_play:
+            print(f"{ENGINE_NAME} will play both sides.")
         else:
-            print(f"You are Black. {ENGINE_NAME} is White.")
-        print("Enter moves in UCI format, e.g. e2e4.")
-        print("Type 'quit' to exit.")
+            self.choose_color()
+            if self.human_color == chess.WHITE:
+                print(f"You are White. {ENGINE_NAME} is Black.")
+            else:
+                print(f"You are Black. {ENGINE_NAME} is White.")
+            print("Enter moves in UCI format, e.g. e2e4.")
+            print("Type 'quit' to exit.")
         print(self.board.unicode(orientation=self.human_color, invert_color=True))
         print(f"Evaluation (White +, Black -): {evaluate(self.board)}")
 
         while not self.board.is_game_over():
-            if self.board.turn == self.human_color:
+            best_move = self.announce_best_move()
+            if self_play:
+                self.engine_move(best_move)
+            elif self.board.turn == self.human_color:
                 human_move = self.get_human_move()
                 if human_move is None:
                     print("Game ended by resignation/exit.")
@@ -85,7 +107,7 @@ class Game:
                 print(f"You play: {self.board.san(human_move)}")
                 self.board.push(human_move)
             else:
-                self.engine_move()
+                self.engine_move(best_move)
             print(self.board.unicode(orientation=self.human_color, invert_color=True))
             print(f"Evaluation (White +, Black -): {evaluate(self.board)}")
         print("Game over!")

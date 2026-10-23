@@ -22,6 +22,8 @@ class Search:
         self.root_best = None
         self.last_depth = 0
         self.last_score = 0
+        self.best_moves = {}
+        self.current_best_move = None
 
     def _tick(self):
         self.nodes += 1
@@ -139,11 +141,17 @@ class Search:
         self.history.clear()
         self.killers = [[None, None] for _ in range(MAX_PLY + 2)]
         legal = list(board.legal_moves)
+        self.current_best_move = None
+        self.root_best = None
+        self.last_depth = 0
+        self.last_score = 0
         if not legal:
             return None
         root_len = len(board.move_stack)
         best_move = legal[0]
         if len(legal) == 1:
+            self.current_best_move = best_move
+            self.best_moves[(board._transposition_key(), board.turn)] = best_move
             return best_move
         for depth in range(1, max_depth + 1):
             try:
@@ -154,7 +162,33 @@ class Search:
                 break
             if self.root_best is not None:
                 best_move = self.root_best
+                self.current_best_move = best_move
             self.last_depth, self.last_score = depth, score
+            self._store_principal_variation(board, depth)
             if abs(score) >= MATE - 1000:
                 break
+        self.current_best_move = best_move
+        self.best_moves.setdefault((board._transposition_key(), board.turn), best_move)
         return best_move
+
+    def _store_principal_variation(self, board, depth):
+        line = []
+        root_len = len(board.move_stack)
+        seen = set()
+        try:
+            for _ in range(depth):
+                key = board._transposition_key()
+                if key in seen:
+                    break
+                seen.add(key)
+                entry = self.tt.get(key)
+                move = entry[3] if entry else None
+                if move is None or move not in board.legal_moves:
+                    break
+                line.append((key, board.turn, move))
+                board.push(move)
+        finally:
+            while len(board.move_stack) > root_len:
+                board.pop()
+        for key, color, move in line:
+            self.best_moves[(key, color)] = move
