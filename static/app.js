@@ -42,6 +42,14 @@ const nameModal = document.getElementById('name-modal');
 const nameForm = document.getElementById('name-form');
 const nameInput = document.getElementById('player-name');
 const timeSelect = document.getElementById('engine-time');
+const selfPlayBtn = document.getElementById('btn-self-play') || (() => {
+  const button = document.createElement('button');
+  button.id = 'btn-self-play';
+  button.type = 'button';
+  button.textContent = 'Self-play';
+  document.querySelector('.controls').appendChild(button);
+  return button;
+})();
 const hintBtn = document.getElementById('btn-hint') || (() => {
   const button = document.createElement('button');
   button.id = 'btn-hint';
@@ -60,6 +68,7 @@ moveListEl.insertAdjacentElement('afterend', pgnBtn);
 
 let game = new Chess();
 let playerColor = 'w';
+let selfPlay = false;
 let playerName = 'Player';
 let orientation = 'w';
 let thinking = false;
@@ -93,7 +102,7 @@ function destsFromGame() {
 }
 
 function playerCanMove() {
-  if (thinking || pendingPromotion || game.game_over()) return false;
+  if (selfPlay || thinking || pendingPromotion || game.game_over()) return false;
   return game.turn() === playerColor;
 }
 
@@ -221,6 +230,7 @@ async function requestEngineMove() {
     renderMoveList();
     updateStatus();
     if (game.game_over()) showGameOver();
+    else if (selfPlay) requestEngineMove();
   } catch (err) {
     if (gen !== gameGen) return;
     thinking = false;
@@ -263,8 +273,9 @@ async function requestBestMoveHint() {
 
 function newGame(color) {
   gameGen += 1;
-  playerColor = color;
-  orientation = color;
+  selfPlay = color === 'self';
+  playerColor = selfPlay ? 'w' : color;
+  orientation = selfPlay ? 'w' : color;
   game = new Chess();
   lastMove = null;
   bestMoveHint = null;
@@ -276,11 +287,12 @@ function newGame(color) {
   renderMoveList();
   updateLabels();
   updateStatus();
-  if (playerColor === 'b') requestEngineMove();
+  if (selfPlay || playerColor === 'b') requestEngineMove();
 }
 
 function gameOverMessage() {
   if (game.in_checkmate()) {
+    if (selfPlay) return `Checkmate — ${game.turn() === 'w' ? 'Black' : 'White'} wins!`;
     const winner = game.turn() === playerColor ? ENGINE_NAME : playerName;
     return `Checkmate — ${winner} wins!`;
   }
@@ -297,17 +309,30 @@ function showGameOver() {
 }
 
 function updateStatus() {
-  hintBtn.disabled = thinking || game.game_over() || game.turn() !== playerColor;
+  hintBtn.disabled = selfPlay || thinking || game.game_over() || game.turn() !== playerColor;
   if (thinking) {
-    statusEl.textContent = `${ENGINE_NAME} is thinking…`;
+    const side = game.turn() === 'w' ? 'White' : 'Black';
+    statusEl.textContent = selfPlay
+      ? `${ENGINE_NAME} (${side}) is thinking…`
+      : `${ENGINE_NAME} is thinking…`;
     return;
   }
   if (game.game_over()) { showGameOver(); return; }
+  if (selfPlay) {
+    const side = game.turn() === 'w' ? 'White' : 'Black';
+    statusEl.textContent = `Self-play: ${ENGINE_NAME} (${side}) to move${game.in_check() ? ' (check)' : ''}`;
+    return;
+  }
   const side = game.turn() === playerColor ? playerName : ENGINE_NAME;
   statusEl.textContent = `${side} to move${game.in_check() ? ' (check)' : ''}`;
 }
 
 function updateLabels() {
+  if (selfPlay) {
+    labelTop.textContent = orientation === 'w' ? `${ENGINE_NAME} (Black)` : `${ENGINE_NAME} (White)`;
+    labelBottom.textContent = orientation === 'w' ? `${ENGINE_NAME} (White)` : `${ENGINE_NAME} (Black)`;
+    return;
+  }
   const playerBottom = orientation === playerColor;
   labelBottom.textContent = playerBottom ? `${playerName} (you)` : ENGINE_NAME;
   labelTop.textContent = playerBottom ? ENGINE_NAME : `${playerName} (you)`;
@@ -351,14 +376,12 @@ function renderCaptured() {
 function renderMoveList() {
   const history = game.history();
   moveListEl.innerHTML = '';
-  for (let i = 0; i < history.length; i += 2) {
+  for (let i = 0; i < history.length; i += 1) {
     const li = document.createElement('li');
-    li.textContent = `${i / 2 + 1}. ${history[i]}`;
+    const moveNumber = Math.floor(i / 2) + 1;
+    const movePrefix = i % 2 === 0 ? `${moveNumber}. ` : `${moveNumber}. `;
+    li.append(`${movePrefix}${history[i]}`);
     appendEngineInfo(li, i + 1);
-    if (history[i + 1]) {
-      li.append(` ${history[i + 1]}`);
-      appendEngineInfo(li, i + 2);
-    }
     moveListEl.appendChild(li);
   }
   moveListEl.scrollTop = moveListEl.scrollHeight;
@@ -389,8 +412,8 @@ function pgnText() {
       ? (game.turn() === 'w' ? '0-1' : '1-0')
       : '1/2-1/2';
   }
-  const white = playerColor === 'w' ? playerName : ENGINE_NAME;
-  const black = playerColor === 'b' ? playerName : ENGINE_NAME;
+  const white = selfPlay ? ENGINE_NAME : (playerColor === 'w' ? playerName : ENGINE_NAME);
+  const black = selfPlay ? ENGINE_NAME : (playerColor === 'b' ? playerName : ENGINE_NAME);
   game.header('White', white, 'Black', black, 'Result', result);
   return game.pgn();
 }
@@ -417,6 +440,7 @@ async function copyPgn() {
 document.getElementById('btn-new').addEventListener('click', () => newGame(playerColor));
 document.getElementById('btn-white').addEventListener('click', () => newGame('w'));
 document.getElementById('btn-black').addEventListener('click', () => newGame('b'));
+selfPlayBtn.addEventListener('click', () => newGame('self'));
 document.getElementById('btn-flip').addEventListener('click', () => {
   orientation = orientation === 'w' ? 'b' : 'w';
   syncBoard();
