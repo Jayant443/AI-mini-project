@@ -52,6 +52,8 @@ button { cursor: pointer; }
 button:hover { border-color: var(--accent); }
 
 header {
+  position: relative;
+  z-index: 5;
   display: flex;
   flex-wrap: wrap;
   gap: .75rem;
@@ -66,6 +68,47 @@ header {
   flex-wrap: wrap;
   gap: .5rem;
   align-items: center;
+}
+
+.header-actions {
+  display: flex;
+  gap: .5rem;
+  align-items: center;
+  margin-left: auto;
+}
+
+.options-panel {
+  position: absolute;
+  top: calc(100% + 1px);
+  right: 1rem;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: .8rem;
+  width: min(34rem, calc(100vw - 2rem));
+  padding: .9rem;
+  border: 1px solid var(--border);
+  border-radius: .5rem;
+  background: var(--panel);
+  box-shadow: 0 .5rem 1.5rem rgba(0, 0, 0, .18);
+}
+
+.fen-form {
+  display: flex;
+  flex-direction: column;
+  gap: .4rem;
+}
+
+.fen-form label { font-weight: 600; }
+
+.fen-controls {
+  display: flex;
+  gap: .5rem;
+}
+
+.fen-controls input {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .time-label {

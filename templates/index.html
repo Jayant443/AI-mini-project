@@ -22,19 +22,34 @@
   </div>
   <header>
     <h1>Nuwanda</h1>
-    <div class="controls">
+    <div class="header-actions">
       <button id="btn-new" type="button">New Game</button>
-      <button id="btn-flip" type="button">Flip Board</button>
-      <button id="btn-white" type="button">Play as White</button>
-      <button id="btn-black" type="button">Play as Black</button>
-      <button id="btn-self-play" type="button">Self-play</button>
-      <label class="time-label">Engine time
-        <select id="engine-time">
-          <option value="1">1s</option>
-          <option value="2" selected>2s</option>
-          <option value="5">5s</option>
-        </select>
-      </label>
+      <button id="btn-options" type="button" aria-expanded="false" aria-controls="options-panel">
+        Options
+      </button>
+    </div>
+    <div id="options-panel" class="options-panel" hidden>
+      <div class="controls">
+        <button id="btn-flip" type="button">Flip Board</button>
+        <button id="btn-white" type="button">Play as White</button>
+        <button id="btn-black" type="button">Play as Black</button>
+        <button id="btn-self-play" type="button">Self-play</button>
+        <label class="time-label">Engine time
+          <select id="engine-time">
+            <option value="1">1s</option>
+            <option value="2" selected>2s</option>
+            <option value="5">5s</option>
+          </select>
+        </label>
+      </div>
+      <form id="fen-form" class="fen-form">
+        <label for="fen-input">Load a position from FEN</label>
+        <div class="fen-controls">
+          <input id="fen-input" type="text" autocomplete="off" spellcheck="false"
+                 placeholder="Paste a FEN string" required>
+          <button type="submit">Load FEN</button>
+        </div>
+      </form>
     </div>
   </header>
   <main>

@@ -41,6 +41,10 @@ const errorText = document.getElementById('error-text');
 const nameModal = document.getElementById('name-modal');
 const nameForm = document.getElementById('name-form');
 const nameInput = document.getElementById('player-name');
+const optionsToggle = document.getElementById('btn-options');
+const optionsPanel = document.getElementById('options-panel');
+const fenForm = document.getElementById('fen-form');
+const fenInput = document.getElementById('fen-input');
 const timeSelect = document.getElementById('engine-time');
 const selfPlayBtn = document.getElementById('btn-self-play') || (() => {
   const button = document.createElement('button');
@@ -70,6 +74,7 @@ document.getElementById('error-box').insertAdjacentElement('afterend', hintBtn);
 moveListEl.insertAdjacentElement('afterend', pgnBtn);
 
 let game = new Chess();
+let startingFen = game.fen();
 let playerColor = 'w';
 let selfPlay = false;
 let playerName = 'Player';
@@ -204,6 +209,7 @@ async function requestEngineMove() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        fen: startingFen,
         moves: uciMoves(),
         time: Number(timeSelect.value),
       }),
@@ -257,7 +263,7 @@ async function requestBestMoveHint() {
     const response = await fetch(ENGINE_MOVE_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ moves: uciMoves(), time: Number(timeSelect.value) }),
+      body: JSON.stringify({ fen: startingFen, moves: uciMoves(), time: Number(timeSelect.value) }),
     });
     const data = await response.json().catch(() => ({}));
     if (gen !== gameGen) return;
@@ -294,6 +300,7 @@ function newGame(color) {
   playerColor = selfPlay ? 'w' : color;
   orientation = selfPlay ? 'w' : color;
   game = new Chess();
+  startingFen = game.fen();
   updateEvalBar(0, 'w');
   hinting = false;
   lastMove = null;
@@ -308,6 +315,39 @@ function newGame(color) {
   updateLabels();
   updateStatus();
   if (selfPlay || playerColor === 'b') requestEngineMove();
+}
+
+function loadFenPosition(fen) {
+  const candidate = new Chess();
+  try {
+    if (candidate.load(fen) === false) throw new Error('Invalid FEN string.');
+  } catch {
+    showError('Invalid FEN string. Check the position and try again.');
+    return;
+  }
+
+  gameGen += 1;
+  game = candidate;
+  startingFen = game.fen();
+  selfPlay = false;
+  playerColor = game.turn();
+  orientation = playerColor;
+  thinking = false;
+  hinting = false;
+  lastMove = null;
+  bestMoveHint = null;
+  engineInfoByPly.clear();
+  hintInfoByPly.clear();
+  updateEvalBar(0, 'w');
+  closePromotionPicker();
+  hideError();
+  fenInput.value = game.fen();
+  optionsPanel.hidden = true;
+  optionsToggle.setAttribute('aria-expanded', 'false');
+  syncBoard();
+  renderMoveList();
+  updateLabels();
+  updateStatus();
 }
 
 function gameOverMessage() {
@@ -515,6 +555,26 @@ document.getElementById('btn-flip').addEventListener('click', () => {
 });
 document.getElementById('btn-retry').addEventListener('click', () => {
   if (!errorBox.hidden) requestEngineMove();
+});
+optionsToggle.addEventListener('click', () => {
+  optionsPanel.hidden = !optionsPanel.hidden;
+  optionsToggle.setAttribute('aria-expanded', String(!optionsPanel.hidden));
+  if (!optionsPanel.hidden) fenInput.focus();
+});
+fenForm.addEventListener('submit', (event) => {
+  event.preventDefault();
+  loadFenPosition(fenInput.value.trim());
+});
+document.addEventListener('click', (event) => {
+  if (optionsPanel.hidden || optionsPanel.contains(event.target) || optionsToggle.contains(event.target)) return;
+  optionsPanel.hidden = true;
+  optionsToggle.setAttribute('aria-expanded', 'false');
+});
+document.addEventListener('keydown', (event) => {
+  if (event.key !== 'Escape' || optionsPanel.hidden) return;
+  optionsPanel.hidden = true;
+  optionsToggle.setAttribute('aria-expanded', 'false');
+  optionsToggle.focus();
 });
 hintBtn.addEventListener('click', requestBestMoveHint);
 pgnBtn.addEventListener('click', copyPgn);

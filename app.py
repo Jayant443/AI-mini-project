@@ -33,13 +33,24 @@ def engine_move():
     if not isinstance(moves, list) or not all(isinstance(m, str) for m in moves):
         return jsonify(error="'moves' must be a list of UCI strings"), 400
 
+    fen = payload.get("fen")
+    if fen is not None and not isinstance(fen, str):
+        return jsonify(error="'fen' must be a FEN string"), 400
+
     try:
         time_limit = float(payload.get("time", DEFAULT_TIME))
     except (TypeError, ValueError):
         return jsonify(error="'time' must be a number"), 400
     time_limit = max(MIN_TIME, min(MAX_TIME, time_limit))
 
-    board = chess.Board()
+    try:
+        board = chess.Board(fen) if fen is not None else chess.Board()
+    except ValueError as exc:
+        return jsonify(error=f"invalid FEN: {exc}"), 400
+
+    if not board.is_valid():
+        return jsonify(error="FEN describes an invalid chess position"), 400
+
     try:
         for uci in moves:
             board.push_uci(uci)
