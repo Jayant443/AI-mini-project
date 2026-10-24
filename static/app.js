@@ -46,6 +46,8 @@ const optionsPanel = document.getElementById('options-panel');
 const themeToggle = document.getElementById('btn-theme');
 const fenForm = document.getElementById('fen-form');
 const fenInput = document.getElementById('fen-input');
+const pgnForm = document.getElementById('pgn-form');
+const pgnInput = document.getElementById('pgn-input');
 const timeSelect = document.getElementById('engine-time');
 const selfPlayBtn = document.getElementById('btn-self-play') || (() => {
   const button = document.createElement('button');
@@ -370,6 +372,44 @@ function loadFenPosition(fen) {
   updateStatus();
 }
 
+function loadPgnGame(pgn) {
+  const candidate = new Chess();
+  try {
+    if (candidate.load_pgn(pgn) === false) throw new Error('Invalid PGN string.');
+  } catch {
+    showError('Invalid PGN string. Check the notation and try again.');
+    return;
+  }
+
+  const headers = candidate.header();
+  const initialFen = headers.FEN || new Chess().fen();
+  const history = candidate.history({ verbose: true });
+
+  gameGen += 1;
+  game = candidate;
+  startingFen = initialFen;
+  selfPlay = false;
+  playerColor = game.turn();
+  orientation = playerColor;
+  thinking = false;
+  hinting = false;
+  lastMove = history.length
+    ? [history[history.length - 1].from, history[history.length - 1].to]
+    : null;
+  bestMoveHint = null;
+  engineInfoByPly.clear();
+  hintInfoByPly.clear();
+  updateEvalBar(0, 'w');
+  closePromotionPicker();
+  hideError();
+  optionsPanel.hidden = true;
+  optionsToggle.setAttribute('aria-expanded', 'false');
+  syncBoard();
+  renderMoveList();
+  updateLabels();
+  updateStatus();
+}
+
 function gameOverMessage() {
   if (game.in_checkmate()) {
     if (selfPlay) return `Checkmate — ${game.turn() === 'w' ? 'Black' : 'White'} wins!`;
@@ -584,6 +624,10 @@ optionsToggle.addEventListener('click', () => {
 fenForm.addEventListener('submit', (event) => {
   event.preventDefault();
   loadFenPosition(fenInput.value.trim());
+});
+pgnForm.addEventListener('submit', (event) => {
+  event.preventDefault();
+  loadPgnGame(pgnInput.value.trim());
 });
 document.addEventListener('click', (event) => {
   if (optionsPanel.hidden || optionsPanel.contains(event.target) || optionsToggle.contains(event.target)) return;

@@ -129,6 +129,12 @@ header {
   min-width: 0;
 }
 
+.pgn-form textarea {
+  width: 100%;
+  min-height: 7rem;
+  resize: vertical;
+}
+
 .time-label {
   display: flex;
   gap: .4rem;
