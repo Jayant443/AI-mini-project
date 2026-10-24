@@ -72,6 +72,7 @@ let selfPlay = false;
 let playerName = 'Player';
 let orientation = 'w';
 let thinking = false;
+let hinting = false;
 let lastMove = null;
 let bestMoveHint = null;
 let pendingPromotion = null;
@@ -79,6 +80,7 @@ let gameGen = 0;
 let copyFlashTimer = null;
 
 const engineInfoByPly = new Map();
+const hintInfoByPly = new Map();
 
 const board = Chessground(boardEl, {
   movable: {
@@ -243,6 +245,7 @@ async function requestEngineMove() {
 async function requestBestMoveHint() {
   if (thinking || game.game_over() || game.turn() !== playerColor) return;
   const gen = gameGen;
+  hinting = true;
   thinking = true;
   updateStatus();
   syncBoard();
@@ -258,13 +261,22 @@ async function requestBestMoveHint() {
       throw new Error(data.error || `engine request failed (HTTP ${response.status})`);
     }
     bestMoveHint = data.move;
+    hintInfoByPly.set(game.history().length, {
+      move: data.san,
+      depth: data.depth,
+      eval: data.eval,
+      nodes: data.nodes,
+    });
     thinking = false;
+    hinting = false;
     syncBoard();
+    renderMoveList();
     updateStatus();
     statusEl.textContent = `Best move: ${data.san}`;
   } catch (err) {
     if (gen !== gameGen) return;
     thinking = false;
+    hinting = false;
     syncBoard();
     updateStatus();
     showError(err.message);
@@ -277,9 +289,11 @@ function newGame(color) {
   playerColor = selfPlay ? 'w' : color;
   orientation = selfPlay ? 'w' : color;
   game = new Chess();
+  hinting = false;
   lastMove = null;
   bestMoveHint = null;
   engineInfoByPly.clear();
+  hintInfoByPly.clear();
   thinking = false;
   closePromotionPicker();
   hideError();
@@ -310,7 +324,12 @@ function showGameOver() {
 
 function updateStatus() {
   hintBtn.disabled = selfPlay || thinking || game.game_over() || game.turn() !== playerColor;
+  hintBtn.textContent = hinting ? 'Finding hint…' : 'HINT';
   if (thinking) {
+    if (hinting) {
+      statusEl.textContent = 'Finding the best move…';
+      return;
+    }
     const side = game.turn() === 'w' ? 'White' : 'Black';
     statusEl.textContent = selfPlay
       ? `${ENGINE_NAME} (${side}) is thinking…`
@@ -376,15 +395,28 @@ function renderCaptured() {
 function renderMoveList() {
   const history = game.history();
   moveListEl.innerHTML = '';
+  appendHintRow(0);
   for (let i = 0; i < history.length; i += 1) {
     const li = document.createElement('li');
     const moveNumber = Math.floor(i / 2) + 1;
-    const movePrefix = i % 2 === 0 ? `${moveNumber}. ` : `${moveNumber}. `;
-    li.append(`${movePrefix}${history[i]}`);
+    li.append(`${moveNumber}. ${history[i]}`);
     appendEngineInfo(li, i + 1);
     moveListEl.appendChild(li);
+    appendHintRow(i + 1);
   }
   moveListEl.scrollTop = moveListEl.scrollHeight;
+}
+
+function appendHintRow(positionPly) {
+  const info = hintInfoByPly.get(positionPly);
+  if (!info) return;
+  const li = document.createElement('li');
+  li.textContent = `Hint: ${info.move}`;
+  const span = document.createElement('span');
+  span.className = 'engine-info';
+  span.textContent = ` [${info.depth} · ${formatEval(info.eval)} · ${info.nodes} nodes]`;
+  li.appendChild(span);
+  moveListEl.appendChild(li);
 }
 
 function appendEngineInfo(li, ply) {
