@@ -43,6 +43,7 @@ const nameForm = document.getElementById('name-form');
 const nameInput = document.getElementById('player-name');
 const optionsToggle = document.getElementById('btn-options');
 const optionsPanel = document.getElementById('options-panel');
+const themeToggle = document.getElementById('btn-theme');
 const fenForm = document.getElementById('fen-form');
 const fenInput = document.getElementById('fen-input');
 const timeSelect = document.getElementById('engine-time');
@@ -68,6 +69,25 @@ const capturedBottomEl = document.getElementById('captured-bottom');
 const evalBarEl = document.getElementById('eval-bar');
 const evalBarWhiteEl = document.getElementById('eval-bar-white');
 const evalBarScoreEl = document.getElementById('eval-bar-score');
+
+function currentTheme() {
+  return document.documentElement.dataset.theme
+    || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+}
+
+function updateThemeToggle() {
+  const isDark = currentTheme() === 'dark';
+  themeToggle.textContent = 'Light mode';
+  themeToggle.setAttribute('aria-pressed', String(!isDark));
+}
+
+themeToggle.addEventListener('click', () => {
+  const nextTheme = currentTheme() === 'dark' ? 'light' : 'dark';
+  document.documentElement.dataset.theme = nextTheme;
+  try { localStorage.setItem('nuwanda-theme', nextTheme); } catch (_) {}
+  updateThemeToggle();
+});
+updateThemeToggle();
 
 // Keep the controls in their intended sections even if cached markup is served.
 document.getElementById('error-box').insertAdjacentElement('afterend', hintBtn);

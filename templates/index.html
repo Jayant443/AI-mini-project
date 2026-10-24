@@ -5,6 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Nuwanda</title>
 
+  <script>
+    try {
+      const savedTheme = localStorage.getItem('nuwanda-theme');
+      if (savedTheme === 'light' || savedTheme === 'dark') {
+        document.documentElement.dataset.theme = savedTheme;
+      }
+    } catch (_) {}
+  </script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chessground@9.2.1/assets/chessground.base.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chessground@9.2.1/assets/chessground.brown.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chessground@9.2.1/assets/chessground.cburnett.css">
@@ -30,6 +38,7 @@
     </div>
     <div id="options-panel" class="options-panel" hidden>
       <div class="controls">
+        <button id="btn-theme" type="button" aria-pressed="false">Use light mode</button>
         <button id="btn-flip" type="button">Flip Board</button>
         <button id="btn-white" type="button">Play as White</button>
         <button id="btn-black" type="button">Play as Black</button>
