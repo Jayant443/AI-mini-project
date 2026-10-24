@@ -41,19 +41,25 @@
     <section class="board-column">
       <div id="label-top" class="side-label">Nuwanda</div>
       <div id="captured-top" class="captured"></div>
-      <div class="board-frame">
-        <div id="board"></div>
-        <div id="thinking-overlay" class="thinking-overlay" hidden>
-          <span id="thinking-text">Nuwanda is thinking…</span>
+      <div class="board-with-eval">
+        <div id="eval-bar" class="eval-bar" role="img" aria-label="Evaluation: equal">
+          <div id="eval-bar-white" class="eval-bar-white"></div>
+          <span id="eval-bar-score" class="eval-bar-score">0.00</span>
         </div>
-        <div id="promotion-overlay" class="promotion-overlay" hidden>
-          <div class="promotion-card">
-            <p>Promote to</p>
-            <div class="promotion-buttons">
-              <button type="button" data-piece="q">Queen</button>
-              <button type="button" data-piece="r">Rook</button>
-              <button type="button" data-piece="b">Bishop</button>
-              <button type="button" data-piece="n">Knight</button>
+        <div class="board-frame">
+          <div id="board"></div>
+          <div id="thinking-overlay" class="thinking-overlay" hidden>
+            <span id="thinking-text">Nuwanda is thinking…</span>
+          </div>
+          <div id="promotion-overlay" class="promotion-overlay" hidden>
+            <div class="promotion-card">
+              <p>Promote to</p>
+              <div class="promotion-buttons">
+                <button type="button" data-piece="q">Queen</button>
+                <button type="button" data-piece="r">Rook</button>
+                <button type="button" data-piece="b">Bishop</button>
+                <button type="button" data-piece="n">Knight</button>
+              </div>
             </div>
           </div>
         </div>

@@ -61,6 +61,9 @@ const hintBtn = document.getElementById('btn-hint') || (() => {
 const pgnBtn = document.getElementById('btn-copy-pgn');
 const capturedTopEl = document.getElementById('captured-top');
 const capturedBottomEl = document.getElementById('captured-bottom');
+const evalBarEl = document.getElementById('eval-bar');
+const evalBarWhiteEl = document.getElementById('eval-bar-white');
+const evalBarScoreEl = document.getElementById('eval-bar-score');
 
 // Keep the controls in their intended sections even if cached markup is served.
 document.getElementById('error-box').insertAdjacentElement('afterend', hintBtn);
@@ -211,6 +214,7 @@ async function requestEngineMove() {
       throw new Error(data.error || `engine request failed (HTTP ${response.status})`);
     }
 
+    updateEvalBar(data.eval, game.turn());
     bestMoveHint = data.move;
     thinking = false;
     syncBoard();
@@ -260,6 +264,7 @@ async function requestBestMoveHint() {
     if (!response.ok || data.error) {
       throw new Error(data.error || `engine request failed (HTTP ${response.status})`);
     }
+    updateEvalBar(data.eval, game.turn());
     bestMoveHint = data.move;
     hintInfoByPly.set(game.history().length, {
       move: data.san,
@@ -289,6 +294,7 @@ function newGame(color) {
   playerColor = selfPlay ? 'w' : color;
   orientation = selfPlay ? 'w' : color;
   game = new Chess();
+  updateEvalBar(0, 'w');
   hinting = false;
   lastMove = null;
   bestMoveHint = null;
@@ -359,6 +365,35 @@ function updateLabels() {
 
 function formatEval(cp) {
   return `${cp >= 0 ? '+' : ''}${(cp / 100).toFixed(2)}`;
+}
+
+function updateEvalBar(scoreCp, sideToMove) {
+  const score = Number.isFinite(Number(scoreCp)) ? Number(scoreCp) : 0;
+  const whiteScore = sideToMove === 'w' ? score : -score;
+  const isMate = Math.abs(whiteScore) >= 99000;
+  const whiteShare = isMate
+    ? (whiteScore > 0 ? 99 : 1)
+    : 50 + 50 * Math.tanh(Math.max(-10000, Math.min(10000, whiteScore)) / 1000);
+
+  evalBarWhiteEl.style.height = `${whiteShare}%`;
+  evalBarScoreEl.textContent = isMate
+    ? (whiteScore > 0 ? 'M' : '−M')
+    : formatEval(whiteScore);
+  if (whiteShare >= 50) {
+    evalBarScoreEl.style.top = 'auto';
+    evalBarScoreEl.style.bottom = '4px';
+    evalBarScoreEl.style.color = '#111';
+  } else {
+    evalBarScoreEl.style.top = '4px';
+    evalBarScoreEl.style.bottom = 'auto';
+    evalBarScoreEl.style.color = '#fff';
+  }
+  evalBarEl.setAttribute(
+    'aria-label',
+    isMate
+      ? `Evaluation: ${whiteScore > 0 ? 'White' : 'Black'} has mate`
+      : `Evaluation: ${formatEval(whiteScore)} pawns for White`,
+  );
 }
 
 function capturedByColor() {
@@ -491,6 +526,7 @@ nameForm.addEventListener('submit', (event) => {
   newGame(playerColor);
 });
 
+updateEvalBar(0, 'w');
 updateLabels();
 updateStatus();
 syncBoard();
